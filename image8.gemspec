@@ -13,6 +13,7 @@ Gem::Specification.new do |s|
 		"image8.gemspec", 
 		"lib/image8.rb",
   ]
+  s.add_dependency "sinatra", ">= 1.0"
   s.add_dependency "async_sinatra", ">= 0.1.5"
   s.add_dependency "em-http-request", ">= 0.2.7"
   s.add_dependency "rmagick", ">= 2.13.1"
