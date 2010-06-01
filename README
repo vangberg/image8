@@ -1,0 +1,27 @@
+== image8
+
+image8 resizes images on-the-fly and stores them in couchdb for later
+retrival and easy replication. image8 should be used behind a varnish
+or squid. <work in progress>.
+
+== config.ru
+
+    require "image8"
+    Image8.couchdb = "http://127.0.0.1:5984/image8"
+    run Image8
+
+== usage
+
+the url
+
+    http://image8/200x250/http://ny.ti/some/image.jpg
+
+produces an image no larger than 200x250 pixels in size. scales
+proportionality.
+
+== misc
+
+image8 is released under the mit license. (c) 2010 harry vangberg
+<harry@vangberg.name>, memolane <info@memolane.com>.
+
+image8 is inspired by imagery <http://github.com/tobi/imagery>
