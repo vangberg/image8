@@ -2,7 +2,8 @@
 
 image8 resizes images on-the-fly and stores them in couchdb for later
 retrival and easy replication. image8 should be used behind a varnish
-or squid. <work in progress>.
+or squid. image8 uses rmagick. must be served with thin, because of its
+async nature.
 
 == config.ru
 
