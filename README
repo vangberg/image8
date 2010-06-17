@@ -22,6 +22,8 @@ proportionality.
 
 == misc
 
+this has only been tested on ruby 1.9.1.
+
 image8 is released under the mit license. (c) 2010 harry vangberg
 <harry@vangberg.name>, memolane <info@memolane.com>.
 
