@@ -48,7 +48,6 @@ class Image8 < Sinatra::Base
       }
     end
   end
-end
 
   def encode_uri_for_couchdb uri
     uri = URI.encode(uri)
