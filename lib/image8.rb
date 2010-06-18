@@ -14,8 +14,9 @@ class Image8 < Sinatra::Base
     if !request.query_string.empty?
       uri += "?#{request.query_string}"
     end
+    uri = URI.encode(uri)
 
-    doc_id   = encode_uri(uri)
+    doc_id   = encode_uri_for_couchdb(uri)
     doc_uri  = settings.couchdb + "/#{doc_id}"
     doc_http = EventMachine::HttpRequest.new(doc_uri + "/" + format)
 
@@ -23,7 +24,7 @@ class Image8 < Sinatra::Base
     request.callback {
       expires 31_536_000 # 1 year
       if request.response_header.status == 200
-        p "Serving straight from cache.."
+        puts "Serving straight from cache.."
         content_type request.response_header["CONTENT_TYPE"]
         body         request.response
       else
@@ -41,7 +42,7 @@ class Image8 < Sinatra::Base
     }
   end
 
-  def encode_uri uri
+  def encode_uri_for_couchdb uri
     uri = URI.encode(uri)
     uri.gsub! "/", "%2F"
     uri
@@ -52,10 +53,10 @@ class Image8 < Sinatra::Base
     request = cache.get
     request.callback {
       if request.response_header.status == 200
-        p "Serving original from cache.."
+        puts "Serving original from cache.."
         yield request.response if block_given?
       else
-        p "Downloading original.."
+        puts "Downloading original.."
         original = EventMachine::HttpRequest.new(uri).get
         original.callback {
           req = cache.put(
@@ -69,14 +70,11 @@ class Image8 < Sinatra::Base
   end
 
   def resize_image blob, format, &block
-    p "Resizing image.."
-    t1 = Time.now
+    puts "Resizing image.."
     img = Magick::Image.from_blob(blob).first
     img.change_geometry!(format) {|width, height|
       img.resize! width, height
     }
-    t2 = Time.now
-    p t2 - t1
     block.call(img) if block
   end
 end
