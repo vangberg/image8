@@ -10,37 +10,45 @@ class Image8 < Sinatra::Base
   register Sinatra::Async
 
   aget %r|/([0-9x]+)/(.*)| do |format, uri|
-    # This is retarded.
-    if !request.query_string.empty?
-      uri += "?#{request.query_string}"
-    end
-    uri = URI.encode(uri)
+    puts "uri: #{uri.inspect} - #{uri.class}"
 
-    doc_id   = encode_uri_for_couchdb(uri)
-    doc_uri  = settings.couchdb + "/#{doc_id}"
-    doc_http = EventMachine::HttpRequest.new(doc_uri + "/" + format)
-
-    request = doc_http.get(:timeout => 5)
-    request.callback {
-      expires 31_536_000 # 1 year
-      if request.response_header.status == 200
-        puts "Serving straight from cache.."
-        content_type request.response_header["CONTENT_TYPE"]
-        body         request.response
-      else
-        download_original(uri, doc_uri) {|blob|
-          resize_image(blob, format) {|img|
-            doc_http.put(
-              :head => {'Content-Type' => img.mime_type},
-              :body => img.to_blob
-            )
-            content_type img.mime_type
-            body         img.to_blob
-          }
-        }
+    if uri.strip.empty?
+      status 404
+      body "No such image."
+    else
+      # This is retarded.
+      if !request.query_string.empty?
+        uri += "?#{request.query_string}"
       end
-    }
+      uri = URI.encode(uri)
+
+      doc_id   = encode_uri_for_couchdb(uri)
+      doc_uri  = settings.couchdb + "/#{doc_id}"
+      doc_http = EventMachine::HttpRequest.new(doc_uri + "/" + format)
+
+      request = doc_http.get(:timeout => 5)
+      request.callback {
+        expires 31_536_000 # 1 year
+        if request.response_header.status == 200
+          puts "Serving straight from cache.."
+          content_type request.response_header["CONTENT_TYPE"]
+          body         request.response
+        else
+          download_original(uri, doc_uri) {|blob|
+            resize_image(blob, format) {|img|
+              doc_http.put(
+                :head => {'Content-Type' => img.mime_type},
+                :body => img.to_blob
+              )
+              content_type img.mime_type
+              body         img.to_blob
+            }
+          }
+        end
+      }
+    end
   end
+end
 
   def encode_uri_for_couchdb uri
     uri = URI.encode(uri)
