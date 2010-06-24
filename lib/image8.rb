@@ -1,6 +1,9 @@
 require "uri"
 require "sinatra/async"
-require "em-http"
+require "em-synchrony"
+require "em-synchrony/em-http"
+require "fiber"
+require "json"
 require "RMagick"
 
 class Image8 < Sinatra::Base
@@ -9,79 +12,97 @@ class Image8 < Sinatra::Base
 
   register Sinatra::Async
 
-  aget %r|/([0-9x]+)/(.*)| do |format, uri|
-    puts "uri: #{uri.inspect} - #{uri.class}"
+  aget %r[/(resize|crop)/([0-9x]+)/(.*)] do |action, format, uri|
+    EM.synchrony do
+      puts "uri: #{uri.inspect} - #{uri.class}"
 
-    if uri.strip.empty?
-      status 404
-      body "No such image."
-    else
-      # This is retarded.
-      if !request.query_string.empty?
-        uri += "?#{request.query_string}"
-      end
-      uri = URI.encode(uri)
+      if uri.strip.empty?
+        status 404
+        body "No such image."
+      else
+        # This is retarded.
+        uri = append_query_string(uri)
+        doc = doc_uri(uri, format, action)
 
-      doc_id   = encode_uri_for_couchdb(uri)
-      doc_uri  = settings.couchdb + "/#{doc_id}"
-      doc_http = EventMachine::HttpRequest.new(doc_uri + "/" + format)
-
-      request = doc_http.get(:timeout => 5)
-      request.callback {
         expires 31_536_000 # 1 year
+        request = EM::HttpRequest.new(doc).get(:timeout => 5)
         if request.response_header.status == 200
           puts "Serving straight from cache.."
           content_type request.response_header["CONTENT_TYPE"]
           body         request.response
         else
-          download_original(uri, doc_uri) {|blob|
-            resize_image(blob, format) {|img|
-              doc_http.put(
-                :head => {'Content-Type' => img.mime_type},
-                :body => img.to_blob
-              )
-              content_type img.mime_type
-              body         img.to_blob
-            }
-          }
+          original, rev = download_original(uri)
+          image         = transform_image(original, action, format)
+
+          http = EM::HttpRequest.new "#{doc}?rev=#{rev}"
+          http.aput(
+            :head   => {'Content-Type' => image.mime_type},
+            :body   => image.to_blob,
+            :params => {:rev => rev}
+          )
+          content_type image.mime_type
+          body         image.to_blob
         end
-      }
+      end
     end
   end
 
-  def encode_uri_for_couchdb uri
+  def append_query_string uri
+    if !request.query_string.empty?
+      uri += "?#{request.query_string}"
+    end
+    uri
+  end
+
+  def doc_id uri
     uri = URI.encode(uri)
     uri.gsub! "/", "%2F"
     uri
   end
 
-  def download_original uri, doc_uri
-    cache = EventMachine::HttpRequest.new(doc_uri + "/full")
-    request = cache.get
-    request.callback {
-      if request.response_header.status == 200
-        puts "Serving original from cache.."
-        yield request.response if block_given?
-      else
-        puts "Downloading original.."
-        original = EventMachine::HttpRequest.new(uri).get
-        original.callback {
-          req = cache.put(
-            :head => {'Content-Type' => original.response_header["CONTENT_TYPE"]},
-            :body => original.response
-          )
-          req.callback { yield original.response if block_given? }
-        }
-      end
-    }
+  def doc_uri uri, format=nil, action=nil
+    format = "#{action}/#{format}" if action
+    [settings.couchdb, doc_id(uri), format].compact.join("/")
   end
 
-  def resize_image blob, format, &block
-    puts "Resizing image.."
-    img = Magick::Image.from_blob(blob).first
-    img.change_geometry!(format) {|width, height|
-      img.resize! width, height
-    }
-    block.call(img) if block
+  def download_original uri
+    cache = EM::HttpRequest.new doc_uri(uri, "full")
+    request = cache.get
+
+    if request.response_header.status == 200
+      puts "Serving original from cache.."
+      blob = request.response
+      rev  = request.response_header["ETAG"][1..-2]
+    else
+      puts "Downloading original.."
+      original = EM::HttpRequest.new(uri).get
+      request = cache.put(
+        :head => {'Content-Type' => original.response_header["CONTENT_TYPE"]},
+        :body => original.response
+      )
+      blob = original.response
+      rev  = JSON.parse(request.response)["rev"]
+    end
+
+    [blob, rev]
+  end
+
+  def format_response request
+    rev  = etag[1..-2]
+    [blob, rev]
+  end
+
+  def transform_image blob, action, format
+    puts "#{action} image.."
+    image = Magick::Image.from_blob(blob).first
+    case action
+    when "resize" then
+      image.change_geometry!(format) {|width, height|
+        image.resize! width, height
+      }
+    when "crop" then
+      image.resize_to_fill! format.to_i
+    end
+    image
   end
 end
