@@ -101,7 +101,8 @@ class Image8 < Sinatra::Base
         image.resize! width, height
       }
     when "crop" then
-      image.resize_to_fill! format.to_i
+      width, height = format.split("x").map {|x| x.to_i}
+      image.resize_to_fill! width, height
     end
     image
   end
