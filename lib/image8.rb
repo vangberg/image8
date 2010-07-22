@@ -109,7 +109,9 @@ class Image8 < Sinatra::Base
       actual_height = image.columns
       
       if( actual_width > width || actual_height > height )
-        image.resize! width, height
+        image.change_geometry!(format) {|width, height|
+          image.resize! width, height
+        }
       end
     end
     image
