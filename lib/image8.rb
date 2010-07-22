@@ -12,7 +12,7 @@ class Image8 < Sinatra::Base
 
   register Sinatra::Async
 
-  aget %r[/(resize|crop)/([0-9x]+)/(.*)] do |action, format, uri|
+  aget %r[/(resize|crop|max)/([0-9x]+)/(.*)] do |action, format, uri|
     EM.synchrony do
       puts "uri: #{uri.inspect} - #{uri.class}"
 
@@ -103,6 +103,14 @@ class Image8 < Sinatra::Base
     when "crop" then
       width, height = format.split("x").map {|x| x.to_i}
       image.resize_to_fill! width, height
+    when "max" then
+      width, height = format.split("x").map {|x| x.to_i}
+      actual_width = image.rows
+      actual_height = image.columns
+      
+      if( actual_width > width || actual_height > height )
+        image.resize! width, height
+      end
     end
     image
   end
