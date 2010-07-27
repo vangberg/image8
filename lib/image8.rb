@@ -105,8 +105,8 @@ class Image8 < Sinatra::Base
       image.resize_to_fill! width, height
     when "max" then
       width, height = format.split("x").map {|x| x.to_i}
-      actual_width = image.rows
-      actual_height = image.columns
+      actual_width = image.columns
+      actual_height = image.rows
       
       if( actual_width > width || actual_height > height )
         image.change_geometry!(format) {|width, height|
