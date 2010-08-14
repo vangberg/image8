@@ -18,7 +18,7 @@ class Image8 < Sinatra::Base
 
       if uri.strip.empty?
         status 404
-        body "No such image."
+        body ["No such image."]
       else
         # This is retarded.
         uri = append_query_string(uri)
@@ -29,7 +29,7 @@ class Image8 < Sinatra::Base
         if request.response_header.status == 200
           puts "Serving straight from cache.."
           content_type request.response_header["CONTENT_TYPE"]
-          body         request.response
+          body [request.response]
         else
           original, rev = download_original(uri)
           image         = transform_image(original, action, format)
@@ -41,7 +41,7 @@ class Image8 < Sinatra::Base
             :params => {:rev => rev}
           )
           content_type image.mime_type
-          body         image.to_blob
+          body [image.to_blob]
         end
       end
     end

@@ -24,6 +24,9 @@ proportionality.
 
 this has only been tested on ruby 1.9.1.
 
+the name of the different functions (max, resize, crop) etc are
+a bit misleading at the moment. will be fixed in the future.
+
 image8 is released under the mit license. (c) 2010 harry vangberg
 <harry@vangberg.name>, memolane <info@memolane.com>.
 
