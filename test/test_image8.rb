@@ -69,4 +69,16 @@ class TestResize < Test::Unit::TestCase
     assert_equal 200, image.columns
     assert_equal 400, image.rows
   end
+
+  def test_follow_redirects
+    get "/crop/200x400/http://localhost:8078/redirect"
+
+    assert_async
+    em_async_continue
+    assert last_response.ok?
+
+    image = Magick::Image.from_blob(last_response.body).first
+    assert_equal 200, image.columns
+    assert_equal 400, image.rows
+  end
 end

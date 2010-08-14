@@ -75,7 +75,7 @@ class Image8 < Sinatra::Base
       rev  = request.response_header["ETAG"][1..-2]
     else
       puts "Downloading original.."
-      original = EM::HttpRequest.new(uri).get
+      original = EM::HttpRequest.new(uri).get :redirects => 10
       request = cache.put(
         :head => {'Content-Type' => original.response_header["CONTENT_TYPE"]},
         :body => original.response

@@ -1,6 +1,11 @@
-FixtureServer = Rack::Builder.new {
+require "sinatra/base"
+
+class FixtureServer < Sinatra::Base
   use Rack::Static, :urls => ["/fixtures"], :root => "test"
-  run lambda {|env| [404, {}, []]}
-}
+  
+  get "/redirect" do
+    redirect "/fixtures/matador.jpg"
+  end
+end
 
 run FixtureServer
