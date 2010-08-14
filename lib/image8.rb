@@ -21,7 +21,7 @@ class Image8 < Sinatra::Base
         body ["No such image."]
       else
         # This is retarded.
-        uri = append_query_string(uri)
+        uri = URI.encode append_query_string(uri)
         doc = doc_uri(uri, format, action)
 
         expires 31_536_000 # 1 year

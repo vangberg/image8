@@ -5,6 +5,11 @@ class TestResize < Test::Unit::TestCase
     Image8.new
   end
 
+  def setup
+    `curl -s -X DELETE http://127.0.0.1:5984/image8`
+    `curl -s -X PUT http://127.0.0.1:5984/image8`
+  end
+
   def test_resize
     get "/resize/200x400/http://localhost:8078/fixtures/matador.jpg"
 
@@ -51,5 +56,17 @@ class TestResize < Test::Unit::TestCase
     image = Magick::Image.from_blob(last_response.body).first
     assert_equal 300, image.columns
     assert_equal 200, image.rows
+  end
+
+  def test_image_with_whitespace_in_name
+    get "/crop/200x400/http://localhost:8078/fixtures/white%20space.jpg"
+
+    assert_async
+    em_async_continue
+    assert last_response.ok?
+
+    image = Magick::Image.from_blob(last_response.body).first
+    assert_equal 200, image.columns
+    assert_equal 400, image.rows
   end
 end
