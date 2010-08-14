@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name     = "image8"
-  s.version  = "0.3.6"
-  s.date     = "2010-06-24"
+  s.version  = "0.3.7"
+  s.date     = "2010-08-14"
   s.summary  = "dynamic image resizing."
   s.email    = "harry@vangberg.name"
   s.homepage = "http://github.com/ichverstehe/image8"
